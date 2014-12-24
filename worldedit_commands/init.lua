@@ -852,6 +852,8 @@ minetest.register_chatcommand("/restore", {
 	end),
 })
 
+local max_nodes = 100
+local max_volume = max_nodes^3	-- maximum nodes count for using a single file
 minetest.register_chatcommand("/save", {
 	params = "<file>",
 	description = "Save the current WorldEdit region to \"(world folder)/schems/<file>.we\"",
@@ -866,22 +868,57 @@ minetest.register_chatcommand("/save", {
 			return
 		end
 
-		local result, count = worldedit.serialize(worldedit.pos1[name], worldedit.pos2[name])
-
+		local pos1, pos2 = worldedit.sort_pos(worldedit.pos1[name], worldedit.pos2[name])
+		local volume = worldedit.volume(pos1, pos2)
 		local path = minetest.get_worldpath() .. "/schems"
-		local filename = path .. "/" .. param .. ".we"
-		filename = filename:gsub("\"", "\\\""):gsub("\\", "\\\\") --escape any nasty characters
 		os.execute("mkdir \"" .. path .. "\"") --create directory if it does not already exist
-		local file, err = io.open(filename, "wb")
-		if err ~= nil then
-			worldedit.player_notify(name, "could not save file to \"" .. filename .. "\"")
-			return
-		end
-		file:write(result)
-		file:flush()
-		file:close()
 
-		worldedit.player_notify(name, count .. " nodes saved")
+		local positions
+		local filename = path .. "/" .. param
+		if volume <= max_volume then
+			positions = {{pos1, pos2, filename .. ".we"}}
+		else
+			positions = {}
+			local max_nodes = max_nodes
+			for z = pos1.z,pos2.z,max_nodes do
+				for y = pos1.y,pos2.y,max_nodes do
+					for x = pos1.x,pos2.x,max_nodes do
+						table.insert(positions, {
+							{x=x, y=y, z=z},
+							{
+								x=math.max(x+max_nodes-1, pos2.x),
+								y=math.max(y+max_nodes-1, pos2.y),
+								z=math.max(z+max_nodes-1, pos2.z)
+							},
+							filename.."_"..x-pos1.x.."_"..y-pos1.y.."_"..z-pos1.z..".we"
+						})
+					end
+				end
+			end
+			worldedit.player_notify(name, "positions calculated")
+		end
+
+		for _,data in pairs(positions) do
+			local pos1, pos2, filename = unpack(data)
+
+			local result, count = worldedit.serialize(pos1, pos2)
+
+			if count == 0 then
+				worldedit.player_notify(name, "0 nodes (only air) don't become saved")
+			else
+				filename = filename:gsub("\"", "\\\""):gsub("\\", "\\\\") --escape any nasty characters
+				local file, err = io.open(filename, "wb")
+				if err ~= nil then
+					worldedit.player_notify(name, "could not save file to \"" .. filename .. "\"")
+					return
+				end
+				file:write(result)
+				file:flush()
+				file:close()
+
+				worldedit.player_notify(name, count .. " nodes saved to " .. filename)
+			end
+		end
 	end),
 })
 
