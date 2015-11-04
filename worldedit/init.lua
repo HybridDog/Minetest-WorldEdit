@@ -46,3 +46,6 @@ if minetest.settings:get_bool("log_mods") then
 	print("[WorldEdit] Loaded!")
 end
 
+-- Once every mods loaded, gather diagonal nodes
+minetest.after(1, worldedit.load_diag_nodes_inventory)
+
