@@ -116,50 +116,28 @@ function worldedit.copy(pos1, pos2, axis, amount)
 
 	local get_node, get_meta, set_node = minetest.get_node,
 			minetest.get_meta, minetest.set_node
-	-- Copy things backwards when negative to avoid corruption.
-	-- FIXME: Lots of code duplication here.
-	if amount < 0 then
-		local pos = {}
-		pos.x = pos1.x
-		while pos.x <= pos2.x do
-			pos.y = pos1.y
-			while pos.y <= pos2.y do
-				pos.z = pos1.z
-				while pos.z <= pos2.z do
-					local node = get_node(pos) -- Obtain current node
-					local meta = get_meta(pos):to_table() -- Get meta of current node
-					local value = pos[axis] -- Store current position
-					pos[axis] = value + amount -- Move along axis
-					set_node(pos, node) -- Copy node to new position
-					get_meta(pos):from_table(meta) -- Set metadata of new node
-					pos[axis] = value -- Restore old position
-					pos.z = pos.z + 1
-				end
-				pos.y = pos.y + 1
+	-- Switch pos1 with pos2 when negative to avoid corruption.
+	if amount >= 0 then
+		pos1, pos2 = pos2, pos1
+	end
+	local pos = vector.new(pos1)
+	while pos.x <= pos2.x do
+		while pos.y <= pos2.y do
+			while pos.z <= pos2.z do
+				local node = get_node(pos) -- Obtain current node
+				local meta = get_meta(pos):to_table() -- Get meta of current node
+				local value = pos[axis] -- Store current position
+				pos[axis] = value + amount -- Move along axis
+				set_node(pos, node) -- Copy node to new position
+				get_meta(pos):from_table(meta) -- Set metadata of new node
+				pos[axis] = value -- Restore old position
+				pos.z = pos.z + 1
 			end
-			pos.x = pos.x + 1
+			pos.z = pos1.z
+			pos.y = pos.y + 1
 		end
-	else
-		local pos = {}
-		pos.x = pos2.x
-		while pos.x >= pos1.x do
-			pos.y = pos2.y
-			while pos.y >= pos1.y do
-				pos.z = pos2.z
-				while pos.z >= pos1.z do
-					local node = get_node(pos) -- Obtain current node
-					local meta = get_meta(pos):to_table() -- Get meta of current node
-					local value = pos[axis] -- Store current position
-					pos[axis] = value + amount -- Move along axis
-					set_node(pos, node) -- Copy node to new position
-					get_meta(pos):from_table(meta) -- Set metadata of new node
-					pos[axis] = value -- Restore old position
-					pos.z = pos.z - 1
-				end
-				pos.y = pos.y - 1
-			end
-			pos.x = pos.x - 1
-		end
+		pos.y = pos1.y
+		pos.x = pos.x + 1
 	end
 	return worldedit.volume(pos1, pos2)
 end
