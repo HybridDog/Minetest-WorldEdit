@@ -366,18 +366,7 @@ function worldedit.stack(pos1, pos2, axis, count)
 		count = -count
 		length = -length
 	end
-	local amount = 0
-	local copy = worldedit.copy
-	local i = 1
-	function next_one()
-		if i <= count then
-			i = i + 1
-			amount = amount + length
-			copy(pos1, pos2, axis, amount)
-			minetest.after(0, next_one)
-		end
-	end
-	next_one()
+	worldedit.multicopy(pos1, pos2, axis, length, count)
 	return worldedit.volume(pos1, pos2) * count
 end
 
