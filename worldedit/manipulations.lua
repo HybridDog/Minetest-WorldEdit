@@ -103,6 +103,18 @@ function worldedit.stack2(pos1, pos2, direction, amount, finished)
 end
 
 
+-- gets meta contents only if it's not empty
+local m_get_meta = minetest.get_meta
+local function get_meta_contents(pos)
+	local tab = m_get_meta(pos):to_table()
+	for i,v in pairs(tab) do
+		if (i ~= "fields" and i ~= "inventory")
+		or next(v) then
+			return tab
+		end
+	end
+end
+
 --- Copies a region along `axis` by `amount` nodes.
 -- @param pos1
 -- @param pos2
@@ -134,7 +146,6 @@ function worldedit.copy(pos1, pos2, axis, amount)
 
 	worldedit.keep_loaded(pos1, pos2)
 
-	local get_meta = minetest.get_meta
 	for z = pos1.z, pos2.z do
 		for y = pos1.y, pos2.y do
 			for x = pos1.x, pos2.x do
@@ -142,8 +153,11 @@ function worldedit.copy(pos1, pos2, axis, amount)
 				local pos = {x=x, y=y, z=z}
 
 				-- pos in metae[n] gets changed because it table
-				metae[n] = {pos, get_meta(pos):to_table()}
-				n = n+1
+				local metatab = get_meta_contents(pos)
+				if metatab then
+					metae[n] = {pos, metatab}
+					n = n+1
+				end
 
 				pos[axis] = pos[axis] + amount
 				local vi_to = area_to:indexp(pos)
@@ -163,6 +177,7 @@ function worldedit.copy(pos1, pos2, axis, amount)
 	manip_to:set_param2_data(param2s_to)
 	manip_to:write_to_map()
 
+	local get_meta = minetest.get_meta
 	for _,t in pairs(metae) do
 		get_meta(t[1]):from_table(t[2])
 	end
@@ -209,7 +224,6 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 
 	worldedit.keep_loaded(pos1, pos2)
 
-	local get_meta = minetest.get_meta
 	for z = pos1.z, pos2.z do
 		for y = pos1.y, pos2.y do
 			for x = pos1.x, pos2.x do
@@ -219,8 +233,11 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 				local pos = {x=x, y=y, z=z}
 
 				-- see worldedit.copy
-				metae[n] = {pos, get_meta(pos):to_table()}
-				n = n+1
+				local metatab = get_meta_contents(pos)
+				if metatab then
+					metae[n] = {pos, metatab}
+					n = n+1
+				end
 
 				for _ = 1,rep do
 					pos[axis] = pos[axis] + amount
@@ -242,6 +259,7 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 	manip_to:set_param2_data(param2s_to)
 	manip_to:write_to_map()
 
+	local get_meta = minetest.get_meta
 	for _,t in pairs(metae) do
 		local pos, metatab = unpack(t)
 		for _ = 1,rep do
