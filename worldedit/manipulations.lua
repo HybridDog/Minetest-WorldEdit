@@ -192,57 +192,62 @@ end
 function worldedit.copy(pos1, pos2, axis, amount)
 	local pos1, pos2 = worldedit.sort_pos(pos1, pos2)
 
-	local min,max = pos1,pos2
-	if amount < 0 then
-		min = vector.new(pos1)
-		min[axis] = min[axis]+amount
-	else
-		max = vector.new(pos2)
-		max[axis] = max[axis]+amount
-	end
+	local manip_from = minetest.get_voxel_manip()
+	local e1, e2 = manip_from:read_from_map(pos1, pos2)
+	local area_from = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data_from = manip_from:get_data()
+	local param2s_from = manip_from:get_param2_data()
 
-	local manip = minetest.get_voxel_manip()
-	local e1, e2 = manip:read_from_map(min, max)
-	local area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
-	local data = manip:get_data()
-	local param2s = manip:get_param2_data()
+	pos1[axis] = pos1[axis]+amount
+	pos2[axis] = pos2[axis]+amount
+
+	local manip_to = minetest.get_voxel_manip()
+	local e1, e2 = manip_to:read_from_map(pos1, pos2)
+	local area_to = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data_to = manip_to:get_data()
+	local param2s_to = manip_to:get_param2_data()
+
+	pos1[axis] = pos1[axis]-amount
+	pos2[axis] = pos2[axis]-amount
 
 	local metae,n = {},1
 
 	worldedit.keep_loaded(pos1, pos2)
 
-	local get_node, get_meta, set_node = minetest.get_node,
-			minetest.get_meta, minetest.set_node
+	local get_meta = minetest.get_meta
 	for z = pos1.z, pos2.z do
 		for y = pos1.y, pos2.y do
 			for x = pos1.x, pos2.x do
-				local vi_from = area:index(x,y,z)
+				local vi_from = area_from:index(x,y,z)
 				local pos = {x=x, y=y, z=z}
 
 				-- pos in metae[n] gets changed because it table
 				metae[n] = {pos, get_meta(pos):to_table()}
 				n = n+1
 
-				pos[axis] = pos[axis] + amount -- Move along axis
-				local vi_to = area:indexp(pos)
-				data[vi_to] = data[vi_from]
-				param2s[vi_to] = param2s[vi_from]
-
-				set_node(pos, node) -- Copy node to new position
-				get_meta(pos):from_table(meta) -- Set metadata of new node
+				pos[axis] = pos[axis] + amount
+				local vi_to = area_to:indexp(pos)
+				data_to[vi_to] = data_from[vi_from]
+				param2s_to[vi_to] = param2s_from[vi_from]
 			end
 		end
 	end
 
-	manip:set_data(data)
-	manip:set_param2_data(param2s)
-	manip:write_to_map()
+	manip_from = nil
+	area_from = nil
+	data_from = nil
+	param2s_from = nil
+	collectgarbage()
+
+	manip_to:set_data(data_to)
+	manip_to:set_param2_data(param2s_to)
+	manip_to:write_to_map()
 
 	for _,t in pairs(metae) do
 		get_meta(t[1]):from_table(t[2])
 	end
 
-	manip:update_map()
+	manip_to:update_map()
 
 	return worldedit.volume(pos1, pos2)
 end
