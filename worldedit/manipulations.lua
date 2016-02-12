@@ -252,6 +252,75 @@ function worldedit.copy(pos1, pos2, axis, amount)
 	return worldedit.volume(pos1, pos2)
 end
 
+--- Copies a region along `axis` by `amount` nodes.
+-- @param pos1
+-- @param pos2
+-- @param axis Axis ("x", "y", or "z")
+-- @param amount
+-- @return The number of nodes copied.
+function worldedit.copy(pos1, pos2, axis, amount)
+	local pos1, pos2 = worldedit.sort_pos(pos1, pos2)
+
+	local manip_from = minetest.get_voxel_manip()
+	local e1, e2 = manip_from:read_from_map(pos1, pos2)
+	local area_from = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data_from = manip_from:get_data()
+	local param2s_from = manip_from:get_param2_data()
+
+	pos1[axis] = pos1[axis]+amount
+	pos2[axis] = pos2[axis]+amount
+
+	local manip_to = minetest.get_voxel_manip()
+	local e1, e2 = manip_to:read_from_map(pos1, pos2)
+	local area_to = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data_to = manip_to:get_data()
+	local param2s_to = manip_to:get_param2_data()
+
+	pos1[axis] = pos1[axis]-amount
+	pos2[axis] = pos2[axis]-amount
+
+	local metae,n = {},1
+
+	worldedit.keep_loaded(pos1, pos2)
+
+	local get_meta = minetest.get_meta
+	for z = pos1.z, pos2.z do
+		for y = pos1.y, pos2.y do
+			for x = pos1.x, pos2.x do
+				local vi_from = area_from:index(x,y,z)
+				local pos = {x=x, y=y, z=z}
+
+				-- pos in metae[n] gets changed because it table
+				metae[n] = {pos, get_meta(pos):to_table()}
+				n = n+1
+
+				pos[axis] = pos[axis] + amount
+				local vi_to = area_to:indexp(pos)
+				data_to[vi_to] = data_from[vi_from]
+				param2s_to[vi_to] = param2s_from[vi_from]
+			end
+		end
+	end
+
+	manip_from = nil
+	area_from = nil
+	data_from = nil
+	param2s_from = nil
+	collectgarbage()
+
+	manip_to:set_data(data_to)
+	manip_to:set_param2_data(param2s_to)
+	manip_to:write_to_map()
+
+	for _,t in pairs(metae) do
+		get_meta(t[1]):from_table(t[2])
+	end
+
+	manip_to:update_map()
+
+	return worldedit.volume(pos1, pos2)
+end
+
 --- Copies a region by offset vector `off`.
 -- @param pos1
 -- @param pos2
