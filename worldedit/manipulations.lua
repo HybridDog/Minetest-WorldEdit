@@ -446,18 +446,7 @@ function worldedit.stack(pos1, pos2, axis, count)
 		count = -count
 		length = -length
 	end
-	local amount = 0
-	local copy = worldedit.copy
-	local i = 1
-	local function next_one()
-		if i <= count then
-			i = i + 1
-			amount = amount + length
-			copy(pos1, pos2, axis, amount)
-			minetest.after(0, next_one)
-		end
-	end
-	next_one()
+	worldedit.multicopy(pos1, pos2, axis, length, count)
 	return worldedit.volume(pos1, pos2) * count
 end
 
@@ -658,7 +647,7 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 	local facedir_substitution
 	local wallmounted_substitution
 
-	if operation == "rotate" then	
+	if operation == "rotate" then
 		angle = angle % 360
 		if angle == 0 then
 			return
@@ -866,16 +855,16 @@ function worldedit.load_diag_nodes_inventory ()
 	-- Technics CNC nodes
 	if minetest.get_modpath("technic") then
 		local cnc_materials = {
-			"default:dirt", "default:wood", "default:stone", "default:cobble", 
+			"default:dirt", "default:wood", "default:stone", "default:cobble",
 			"default:brick", "default:sandstone", "default:leaves", "default:tree",
-			"default:steelblock", "default:bronzeblock", 
+			"default:steelblock", "default:bronzeblock",
 			"technic:stainless_steel_block", "technic:marble", "technic:granite"}
 
 		local cnc_suffixes = {
 			"_technic_cnc_slope_inner_edge", "_technic_cnc_slope_inner_edge_upsdown",
 			"_technic_cnc_slope_edge_upsdown", "_technic_cnc_twocurvededge",
 			"_technic_cnc_element_edge_double", "_technic_cnc_element_edge"}
-		
+
 		for _, material in ipairs(cnc_materials) do
 			for _, suffix in ipairs(cnc_suffixes) do
 				worldedit.diagonal_nodes[material..suffix] = material..suffix
