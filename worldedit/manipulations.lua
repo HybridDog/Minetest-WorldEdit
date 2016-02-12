@@ -112,6 +112,23 @@ end
 function worldedit.copy(pos1, pos2, axis, amount)
 	local pos1, pos2 = worldedit.sort_pos(pos1, pos2)
 
+	local min,max = pos1,pos2
+	if amount < 0 then
+		min = vector.new(pos1)
+		min[axis] = min[axis]+amount
+	else
+		max = vector.new(pos2)
+		max[axis] = max[axis]+amount
+	end
+
+	local manip = minetest.get_voxel_manip()
+	local e1, e2 = manip:read_from_map(min, max)
+	local area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data = manip:get_data()
+	local param2s = manip:get_param2_data()
+
+	local metae,n = {},1
+
 	worldedit.keep_loaded(pos1, pos2)
 
 	local get_node, get_meta, set_node = minetest.get_node,
@@ -119,17 +136,34 @@ function worldedit.copy(pos1, pos2, axis, amount)
 	for z = pos1.z, pos2.z do
 		for y = pos1.y, pos2.y do
 			for x = pos1.x, pos2.x do
+				local vi_from = area:index(x,y,z)
 				local pos = {x=x, y=y, z=z}
-				local node = get_node(pos) -- Obtain current node
-				local meta = get_meta(pos):to_table() -- Get meta of current node
-				local value = pos[axis] -- Store current position
-				pos[axis] = value + amount -- Move along axis
+
+				-- pos in metae[n] gets changed because it table
+				metae[n] = {pos, get_meta(pos):to_table()}
+				n = n+1
+
+				pos[axis] = pos[axis] + amount -- Move along axis
+				local vi_to = area:indexp(pos)
+				data[vi_to] = data[vi_from]
+				param2s[vi_to] = param2s[vi_from]
+
 				set_node(pos, node) -- Copy node to new position
 				get_meta(pos):from_table(meta) -- Set metadata of new node
-				pos[axis] = value -- Restore old position
 			end
 		end
 	end
+
+	manip:set_data(data)
+	manip:set_param2_data(param2s)
+	manip:write_to_map()
+
+	for _,t in pairs(metae) do
+		get_meta(t[1]):from_table(t[2])
+	end
+
+	manip:update_map()
+
 	return worldedit.volume(pos1, pos2)
 end
 
