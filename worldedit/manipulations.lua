@@ -265,7 +265,7 @@ function worldedit.copy(pos1, pos2, axis, amount)
 	area_from = nil
 	data_from = nil
 	param2s_from = nil
-	collectgarbage()
+	--collectgarbage()
 
 	manip_to:set_data(data_to)
 	manip_to:set_param2_data(param2s_to)
@@ -280,7 +280,8 @@ function worldedit.copy(pos1, pos2, axis, amount)
 		end
 	end
 
-	manip_to:update_map()
+	mh.extend_chunk_update_queue(e1, e2)
+	--manip_to:update_map()
 
 	return worldedit.volume(pos1, pos2)
 end
@@ -337,7 +338,7 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 	area_from = nil
 	data_from = nil
 	param2s_from = nil
-	collectgarbage()
+	--collectgarbage()
 
 	manip_to:set_data(data_to)
 	manip_to:set_param2_data(param2s_to)
@@ -348,7 +349,8 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 		get_meta(t[1]):from_table(t[2])
 	end
 
-	manip_to:update_map()
+	mh.extend_chunk_update_queue(e1, e2)
+	--manip_to:update_map()
 
 	return worldedit.volume(pos1, pos2)
 end

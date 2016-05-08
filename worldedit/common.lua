@@ -69,10 +69,11 @@ function mh.get_empty_data(area)
 end
 
 
+local emin_c, emax_c
 function mh.init(pos1, pos2)
 	local manip = minetest.get_voxel_manip()
-	local emerged_pos1, emerged_pos2 = manip:read_from_map(pos1, pos2)
-	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	emin_c, emax_c = manip:read_from_map(pos1, pos2)
+	local area = VoxelArea:new({MinEdge=emin_c, MaxEdge=emax_c})
 	return manip, area
 end
 
@@ -105,10 +106,75 @@ function mh.init_axis_radius_length(base_pos, axis, radius, length)
 end
 
 
+local extend_chunkqueue
 function mh.finish(manip, data)
 	-- Update map
 	manip:set_data(data)
 	manip:write_to_map()
+	extend_chunkqueue(emin_c, emax_c)
+	--manip:update_map()
+end
+
+
+-- scheduled map updates instead of instant ones, depends on function_delayer and vector_extras
+
+-- vm updates a single mapchunk
+local function update_single_chunk(pos)
+	local manip = minetest.get_voxel_manip()
+	local emin,emax = manip:read_from_map(pos, pos)--vector.add(pos, 15))
+
+	manip:write_to_map()
 	manip:update_map()
 end
 
+local set = vector.set_data_to_pos
+local get = vector.get_data_from_pos
+local remove = vector.remove_data_from_pos
+
+local chunkqueue_working = false
+local chunkqueue_list
+local chunkqueue = {}
+local function update_chunks()
+	local n
+	if not chunkqueue_list
+	and next(chunkqueue) then
+		local _
+		chunkqueue_list,_,_,n = vector.get_data_pos_table(chunkqueue)
+	end
+	--[[if n then
+		print("[tnt] updating "..n.." chunks in time")
+	end--]]
+	n = next(chunkqueue_list)
+	if not n then
+		--print("stopping chunkupdate")
+		chunkqueue_working = false
+		return
+	end
+	minetest.delay_function(16384, update_chunks)
+
+	local z,y,x = unpack(chunkqueue_list[n])
+	chunkqueue_list[n] = nil
+	remove(chunkqueue, z,y,x)
+	z = z*16
+	y = y*16
+	x = x*16
+	update_single_chunk({x=x,y=y,z=z})
+end
+
+function extend_chunkqueue(emin, emax)
+	for z = emin.z, emax.z, 16 do
+		for y = emin.y, emax.y, 16 do
+			for x = emin.x, emax.x, 16 do
+				set(chunkqueue, z/16,y/16,x/16, true)
+			end
+		end
+	end
+	chunkqueue_list = nil
+	if not chunkqueue_working then
+		chunkqueue_working = true
+		--print("start chunkupdate")
+		minetest.delay_function(16384, update_chunks)
+	end
+end
+
+mh.extend_chunk_update_queue = extend_chunkqueue
