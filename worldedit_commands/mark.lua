@@ -121,8 +121,8 @@ minetest.register_entity(":worldedit:pos1", {
 		collisionbox = {-0.55, -0.55, -0.55, 0.55, 0.55, 0.55},
 		physical = false,
 	},
-	on_step = function(self, dtime)
-		if worldedit.marker1[self.player_name] == nil then
+	on_step = function(self)
+		if not worldedit.marker1[self.player_name] then
 			self.object:remove()
 		end
 	end,
@@ -142,12 +142,12 @@ minetest.register_entity(":worldedit:pos2", {
 		collisionbox = {-0.55, -0.55, -0.55, 0.55, 0.55, 0.55},
 		physical = false,
 	},
-	on_step = function(self, dtime)
-		if worldedit.marker2[self.player_name] == nil then
+	on_step = function(self)
+		if not worldedit.marker2[self.player_name] then
 			self.object:remove()
 		end
 	end,
-	on_punch = function(self, hitter)
+	on_punch = function(self)
 		self.object:remove()
 		worldedit.marker2[self.player_name] = nil
 	end,
@@ -156,13 +156,12 @@ minetest.register_entity(":worldedit:pos2", {
 minetest.register_entity(":worldedit:region_cube", {
 	initial_properties = {
 		visual = "upright_sprite",
-		visual_size = {x=1.1, y=1.1},
 		textures = {"worldedit_cube.png"},
 		visual_size = {x=10, y=10},
 		physical = false,
 	},
-	on_step = function(self, dtime)
-		if worldedit.marker_region[self.player_name] == nil then
+	on_step = function(self)
+		if not worldedit.marker_region[self.player_name] then
 			self.object:remove()
 			return
 		end
@@ -178,4 +177,3 @@ minetest.register_entity(":worldedit:region_cube", {
 		worldedit.marker_region[self.player_name] = nil
 	end,
 })
-
