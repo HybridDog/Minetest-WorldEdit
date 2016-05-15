@@ -120,6 +120,10 @@ end
 
 -- vm updates a single mapchunk
 local function update_single_chunk(pos)
+	if not minetest.get_node_or_nil(pos) then
+		return -- don't update not active chunks
+	end
+
 	local manip = minetest.get_voxel_manip()
 	local emin,emax = manip:read_from_map(pos, pos)--vector.add(pos, 15))
 
