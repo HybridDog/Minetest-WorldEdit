@@ -29,23 +29,35 @@ end
 worldedit.mark_pos2 = function(name)
 	local pos1, pos2 = worldedit.pos1[name], worldedit.pos2[name]
 
-	if pos2 ~= nil then
-		--make area stay loaded
+	if pos2 then
+		-- make area stay loaded
 		local manip = minetest.get_voxel_manip()
 		manip:read_from_map(pos2, pos2)
-	end
-	if worldedit.marker2[name] ~= nil then --marker already exists
-		worldedit.marker2[name]:remove() --remove marker
+		if worldedit.marker2[name] then
+			-- move marker
+			worldedit.marker2[name]:moveto(pos2)
+		else
+			-- add marker
+			worldedit.marker2[name] = minetest.add_entity(pos2, "worldedit:pos2")
+			if worldedit.marker2[name] ~= nil then
+				worldedit.marker2[name]:get_luaentity().player_name = name
+			end
+		end
+	elseif worldedit.marker2[name] then --remove marker
+		worldedit.marker2[name]:remove()
 		worldedit.marker2[name] = nil
 	end
-	if pos2 ~= nil then
-		--add marker
-		worldedit.marker2[name] = minetest.add_entity(pos2, "worldedit:pos2")
-		if worldedit.marker2[name] ~= nil then
-			worldedit.marker2[name]:get_luaentity().player_name = name
-		end
-	end
 	worldedit.mark_region(name)
+end
+
+local function V_updated_chunk(pos1, pos2)
+	pos1 = vector.apply(pos1, function(c)
+		return c - c%16
+	end)
+	pos2 = vector.apply(pos2, function(c)
+		return c+16 - c%16
+	end)
+	return worldedit.volume(pos1,pos2)
 end
 
 worldedit.mark_region = function(name)
@@ -75,9 +87,16 @@ worldedit.mark_region = function(name)
 		local sizex, sizey, sizez = (1 + pos2.x - pos1.x) / 2, (1 + pos2.y - pos1.y) / 2, (1 + pos2.z - pos1.z) / 2
 
 		--make area stay loaded
+		--[[
+		local cV = V_updated_chunk(pos1, pos2)
+		local KiB_before = tonumber(io.popen("ps -C minetest -o rss | tail -n 1"):read("*a"))
+--]]
 		local manip = minetest.get_voxel_manip()
 		manip:read_from_map(pos1, pos2)
-
+--[[
+		local KiB_dif = KiB_before - tonumber(io.popen("ps -C minetest -o rss | tail -n 1"):read("*a"))
+		print(cV.." nodes, "..KiB_dif.. " KiB")
+--]]
 		local markers = {}
 
 		--XY plane markers
