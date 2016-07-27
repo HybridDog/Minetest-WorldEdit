@@ -501,7 +501,41 @@ function worldedit.rotate(pos1, pos2, axis, angle)
 end
 
 
---- Rotates all oriented nodes in a region clockwise around the Y axis.
+-- 90 ° Y seen from above, facedir, not wallmounted
+local facedir_rings = {
+	--usual
+	{0, 1, 2, 3},
+
+	--m_usual
+	{10, 19, 4, 13},
+
+	--ceil
+	{20, 23, 22, 21},
+
+	--m_ceil
+	{8, 17, 6, 15},
+
+	--r_miss_l_long
+	{12, 9, 18, 7},
+
+	--l_miss_r_long
+	{16, 5, 14, 11},
+}
+
+-- returns a substitution table for ↑
+local function get_substitut_table(angle)
+	local t = {}
+	local iadd = angle/90-1
+	for i = 1,#facedir_rings do
+		local ring = facedir_rings[i]
+		for i = 1,4 do
+			t[ring[i]] = ring[(i+iadd)%4+1]
+		end
+	end
+	return t
+end
+
+--- Rotates all oriented nodes in a region clockwise around the Y axis seen from above.
 -- @param pos1
 -- @param pos2
 -- @param angle Angle in degrees (90 degree increments only).
@@ -516,11 +550,6 @@ function worldedit.orient(pos1, pos2, angle)
 		[180] = {[0]=0, 1, 3, 2, 5, 4},
 		[270] = {[0]=0, 1, 4, 5, 3, 2}
 	}
-	local facedir = {
-		[90]  = {[0]=1, 2, 3, 0},
-		[180] = {[0]=2, 3, 0, 1},
-		[270] = {[0]=3, 0, 1, 2}
-	}
 
 	angle = angle % 360
 	if angle == 0 then
@@ -530,7 +559,7 @@ function worldedit.orient(pos1, pos2, angle)
 		error("Only 90 degree increments are supported!")
 	end
 	local wallmounted_substitution = wallmounted[angle]
-	local facedir_substitution = facedir[angle]
+	local facedir_substitution
 
 	worldedit.keep_loaded(pos1, pos2)
 
@@ -538,11 +567,10 @@ function worldedit.orient(pos1, pos2, angle)
 	local set_node, get_node, get_meta, swap_node = minetest.set_node,
 			minetest.get_node, minetest.get_meta, minetest.swap_node
 	local pos = {x=pos1.x, y=0, z=0}
-	while pos.x <= pos2.x do
-		pos.y = pos1.y
-		while pos.y <= pos2.y do
-			pos.z = pos1.z
-			while pos.z <= pos2.z do
+	for z = pos1.z,pos2.z do
+		for y = pos1.y,pos2.y do
+			for x = pos1.x,pos2.x do
+				local pos = {x=x, y=y, z=z}
 				local node = get_node(pos)
 				local def = registered_nodes[node.name]
 				if def then
@@ -553,6 +581,7 @@ function worldedit.orient(pos1, pos2, angle)
 						get_meta(pos):from_table(meta)
 						count = count + 1
 					elseif def.paramtype2 == "facedir" then
+						facedir_substitution = facedir_substitution or get_substitut_table(angle)
 						node.param2 = facedir_substitution[node.param2]
 						local meta = get_meta(pos):to_table()
 						set_node(pos, node)
@@ -560,11 +589,8 @@ function worldedit.orient(pos1, pos2, angle)
 						count = count + 1
 					end
 				end
-				pos.z = pos.z + 1
 			end
-			pos.y = pos.y + 1
 		end
-		pos.x = pos.x + 1
 	end
 	return count
 end
