@@ -112,3 +112,41 @@ function mh.finish(manip, data)
 	manip:update_map()
 end
 
+
+--[[ 90 ° Y seen from above
+usual
+0 > 1
+1 > 2
+2 > 3
+3 > 0
+
+m_usual
+10 > 19
+19 > 4
+4 > 13
+13 > 10
+
+ceil
+20 > 23
+23 > 22
+22 > 21
+21 > 20
+
+m_ceil
+8 > 17
+17 > 6
+6 > 15
+15 > 8
+
+r_miss_l_long
+12 > 9
+9 > 18
+18 > 7
+7 > 12
+
+l_miss_r_long
+16 > 5
+5 > 14
+14 > 11
+11 > 5
+]]
