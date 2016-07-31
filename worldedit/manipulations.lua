@@ -644,7 +644,7 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 	local facedir_substitution
 	local wallmounted_substitution
 
-	if operation == "rotate" then	
+	if operation == "rotate" then
 		angle = angle % 360
 		if angle == 0 then
 			return
@@ -812,7 +812,7 @@ function worldedit.load_diag_nodes_inventory ()
 		'slope_%s_outer_cut', 'slope_%s_outer_cut_half', 'slope_%s_outer_cut_half_raised',
 		'slope_%s_cut'}
 
-	if circular_saw then
+	if minetest.global_exists"circular_saw" then
 		for _, name_parts  in ipairs(circular_saw.known_nodes) do
 			for _, name_format in ipairs(circular_saw_diag_names) do
 				local modname  = name_parts[1] or ""
@@ -852,16 +852,16 @@ function worldedit.load_diag_nodes_inventory ()
 	-- Technics CNC nodes
 	if minetest.get_modpath("technic") then
 		local cnc_materials = {
-			"default:dirt", "default:wood", "default:stone", "default:cobble", 
+			"default:dirt", "default:wood", "default:stone", "default:cobble",
 			"default:brick", "default:sandstone", "default:leaves", "default:tree",
-			"default:steelblock", "default:bronzeblock", 
+			"default:steelblock", "default:bronzeblock",
 			"technic:stainless_steel_block", "technic:marble", "technic:granite"}
 
 		local cnc_suffixes = {
 			"_technic_cnc_slope_inner_edge", "_technic_cnc_slope_inner_edge_upsdown",
 			"_technic_cnc_slope_edge_upsdown", "_technic_cnc_twocurvededge",
 			"_technic_cnc_element_edge_double", "_technic_cnc_element_edge"}
-		
+
 		for _, material in ipairs(cnc_materials) do
 			for _, suffix in ipairs(cnc_suffixes) do
 				worldedit.diagonal_nodes[material..suffix] = material..suffix
