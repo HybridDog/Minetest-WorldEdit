@@ -835,7 +835,7 @@ function worldedit.load_diag_nodes_inventory ()
 		'slope_%s_outer_cut', 'slope_%s_outer_cut_half', 'slope_%s_outer_cut_half_raised',
 		'slope_%s_cut'}
 
-	if circular_saw then
+	if minetest.global_exists"circular_saw" then
 		for _, name_parts  in ipairs(circular_saw.known_nodes) do
 			for _, name_format in ipairs(circular_saw_diag_names) do
 				local modname  = name_parts[1] or ""
