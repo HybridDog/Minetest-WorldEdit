@@ -610,6 +610,42 @@ function worldedit.transpose(pos1, pos2, axis1, axis2)
 end
 
 
+-- cache functions
+local param2_types = {}
+setmetatable(param2_types, {__mode = "kv"})
+local function get_param2_type(id)
+	if param2_types[id] then
+		return param2_types[id]
+	end
+	local def = minetest.registered_nodes[minetest.get_name_from_content_id(id)]
+	local t
+	if def then
+		if def.paramtype2 == "wallmounted" then
+			t = 1
+		elseif def.paramtype2 == "facedir" then
+			t = 2
+		else
+			t = 0
+		end
+	else
+		t = 0
+	end
+	param2_types[id] = t
+	return t
+end
+
+local diagonal_ids = {}
+setmetatable(diagonal_ids, {__mode = "kv"})
+local function is_diagonal_nodes(id)
+	if diagonal_ids[id] ~= nil then
+		return diagonal_ids[id]
+	end
+	local diagonal = worldedit.diagonal_nodes[minetest.get_name_from_content_id(id)] and true or false
+	diagonal_ids[id] = diagonal
+	return diagonal
+end
+
+
 --- Flips a region along `axis`. Flips only nodes, no change on nodes orientations
 -- @return The number of nodes flipped.
 function worldedit.flip_nodes(pos1, pos2, axis)
@@ -660,7 +696,7 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 	local pos1, pos2 = worldedit.sort_pos(pos1, pos2)
 	local registered_nodes = minetest.registered_nodes
 
-	if axis ~= 'x' and axis ~= 'y' and axis ~= 'z' then
+	if not pos1[axis] then
 		error("Axis should be 'x', 'y' or 'z'!")
 	end
 
@@ -670,14 +706,13 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 	if operation == "rotate" then
 		angle = angle % 360
 		if angle == 0 then
-			return
-		else
-			if angle % 90 ~= 0 then
-				error("Only 90 degree increments are supported!")
-			end
-			facedir_substitution = facedir_substitutions[operation][axis][angle]
-			wallmounted_substitution = wallmounted_substitutions[operation][axis][angle]
+			return 0
 		end
+		if angle % 90 ~= 0 then
+			error("Only 90 degree increments are supported!")
+		end
+		facedir_substitution = facedir_substitutions[operation][axis][angle]
+		wallmounted_substitution = wallmounted_substitutions[operation][axis][angle]
   	elseif operation == "flip" then
 		facedir_substitution = facedir_substitutions[operation][axis]
 		wallmounted_substitution = wallmounted_substitutions[operation][axis]
@@ -685,44 +720,36 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 		error("Operation should be 'rotate' or 'flip'!")
 	end
 
-	worldedit.keep_loaded(pos1, pos2)
 
 	local count = 0
-	local set_node, get_node, get_meta, swap_node = minetest.set_node,
-			minetest.get_node, minetest.get_meta, minetest.swap_node
-	local pos = {x=pos1.x, y=0, z=0}
-	while pos.x <= pos2.x do
-		pos.y = pos1.y
-		while pos.y <= pos2.y do
-			pos.z = pos1.z
-			while pos.z <= pos2.z do
-				local node = get_node(pos)
-				local def = registered_nodes[node.name]
-				if def then
-					if def.paramtype2 == "wallmounted" then
-						node.param2 = wallmounted_substitution[node.param2]
-						local meta = get_meta(pos):to_table()
-						set_node(pos, node)
-						get_meta(pos):from_table(meta)
-						count = count + 1
-					elseif def.paramtype2 == "facedir" then
-						if operation == 'flip' and worldedit.diagonal_nodes[node.name] then
-							node.param2 = facedir_substitutions[operation].diag[axis][node.param2]
-						else
-							node.param2 = facedir_substitution[node.param2]
-						end
-						local meta = get_meta(pos):to_table()
-						set_node(pos, node)
-						get_meta(pos):from_table(meta)
-						count = count + 1
-					end
-				end
-				pos.z = pos.z + 1
+
+	local manip = minetest.get_voxel_manip()
+	local e1, e2 = manip:read_from_map(pos1, pos2)
+	local area = VoxelArea:new{MinEdge=e1, MaxEdge=e2}
+	local data = manip:get_data()
+	local param2s = manip:get_param2_data()
+
+	for i in area:iterp(pos1, pos2) do
+		local ptype = get_param2_type(data[i])
+		if ptype == 1 then -- "wallmounted"
+			param2s[i] = wallmounted_substitution[param2s[i]]
+			count = count + 1
+		elseif ptype == 2 then -- "facedir"
+			if operation == "flip"
+			and is_diagonal_nodes(data[i]) then
+				param2s[i] = facedir_substitution[operation].diag[axis][param2s[i]]
+			else
+				param2s[i] = facedir_substitution[param2s[i]]
 			end
-			pos.y = pos.y + 1
+			count = count + 1
 		end
-		pos.x = pos.x + 1
 	end
+
+	manip:set_param2_data(param2s)
+	manip:write_to_map()
+
+	mh.extend_chunk_update_queue(e1, e2)
+
 	return count
 end
 
