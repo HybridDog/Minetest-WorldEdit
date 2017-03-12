@@ -110,7 +110,7 @@ local extend_chunkqueue
 function mh.finish(manip, data)
 	-- Update map
 	manip:set_data(data)
-	manip:write_to_map()
+	manip:write_to_map(false)
 	extend_chunkqueue(emin_c, emax_c)
 	--manip:update_map()
 end
@@ -124,11 +124,12 @@ local function update_single_chunk(pos)
 		return -- don't update not active chunks
 	end
 
-	local manip = minetest.get_voxel_manip()
-	local emin,emax = manip:read_from_map(pos, pos)--vector.add(pos, 15))
+	--~ local manip = minetest.get_voxel_manip()
+	--~ local emin,emax = manip:read_from_map(pos, pos)--vector.add(pos, 15))
 
-	manip:write_to_map()
-	manip:update_map()
+	--~ manip:write_to_map()
+	--~ manip:update_map()
+	minetest.fix_light(vector.divide(pos, 16))
 end
 
 local set = vector.set_data_to_pos
