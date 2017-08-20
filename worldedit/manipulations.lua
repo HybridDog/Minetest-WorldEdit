@@ -262,7 +262,7 @@ function worldedit.copy(pos1, pos2, axis, amount)
 		get_meta(t[1]):from_table(t[2])
 	end
 
-	mh.extend_chunk_update_queue(e1, e2)
+	--~ mh.extend_chunk_update_queue(e1, e2)
 	--manip_to:update_map()
 
 	return worldedit.volume(pos1, pos2)
@@ -349,7 +349,7 @@ function worldedit.multicopy(pos1, pos2, axis, amount, rep)
 		end
 	end
 
-	mh.extend_chunk_update_queue(e1, e2)
+	--~ mh.extend_chunk_update_queue(e1, e2)
 	--manip_to:update_map()
 
 	return worldedit.volume(pos1, pos2)
@@ -748,7 +748,7 @@ function worldedit.orient(pos1, pos2, operation, axis, angle)
 	manip:set_param2_data(param2s)
 	manip:write_to_map()
 
-	mh.extend_chunk_update_queue(e1, e2)
+	--~ mh.extend_chunk_update_queue(e1, e2)
 
 	return count
 end
