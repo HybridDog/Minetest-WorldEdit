@@ -59,7 +59,8 @@ function worldedit.sphere(pos, radius, node_name, hollow)
 	-- Fill selected area with node
 	local node_id = minetest.get_content_id(node_name)
 	local min_radius, max_radius = radius * (radius - 1), radius * (radius + 1)
-	local offset_x, offset_y, offset_z = pos.x - area.MinEdge.x, pos.y - area.MinEdge.y, pos.z - area.MinEdge.z
+	local offset_x, offset_y, offset_z = pos.x - area.MinEdge.x,
+		pos.y - area.MinEdge.y, pos.z - area.MinEdge.z
 	local stride_z, stride_y = area.zstride, area.ystride
 	local count = 0
 	for z = -radius, radius do
@@ -67,13 +68,28 @@ function worldedit.sphere(pos, radius, node_name, hollow)
 		local new_z = (z + offset_z) * stride_z + 1
 		for y = -radius, radius do
 			local new_y = new_z + (y + offset_y) * stride_y
-			for x = -radius, radius do
-				local squared = x * x + y * y + z * z
-				if squared <= max_radius and (not hollow or squared >= min_radius) then
-					-- Position is on surface of sphere
-					local i = new_y + (x + offset_x)
-					data[i] = node_id
-					count = count + 1
+			local x_end = math.floor(math.sqrt(max_radius - y * y - z * z))
+			if x_end >= 0 then
+				local vi = new_y + (-x_end + offset_x)
+				local num_nodes = x_end + x_end + 1
+				if not hollow then
+					for _ = 1, num_nodes do
+						data[vi] = node_id
+						vi = vi+1
+					end
+					count = count + num_nodes
+				else
+					local squared = x_end * x_end + y * y + z * z
+					for x = -x_end, x_end do
+						if squared >= min_radius then
+							-- Position is on surface of sphere
+							local i = new_y + (x + offset_x)
+							data[i] = node_id
+							count = count + 1
+						end
+						vi = vi+1
+						squared = squared + 2 * x + 1
+					end
 				end
 			end
 		end
